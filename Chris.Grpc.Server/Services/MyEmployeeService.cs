@@ -55,7 +55,7 @@ namespace Chris.Grpc.Server.Services
         public override async Task<AddPhotoResponse>
             AddPhoto(IAsyncStreamReader<AddPhotoRequest> requestStream, ServerCallContext context)
         {
-            Metadata metadata = context.RequestHeaders;
+            var metadata = context.RequestHeaders;
 
             foreach (var pair in metadata)
             {
@@ -75,6 +75,30 @@ namespace Chris.Grpc.Server.Services
             {
                 IsOk = true
             };
+        }
+
+        public override async Task<EmployeeResponse> Save(EmployeeRequest request, ServerCallContext context)
+        {
+            var metadata = context.RequestHeaders;
+            foreach (var pair in metadata)
+            {
+                _logger.LogInformation($"{pair.Key}: {pair.Value}");
+            }
+
+            InMemoryData.Employees.Add(request.Employee);
+
+            var response = new EmployeeResponse
+            {
+                Employee = InMemoryData.Employees.SingleOrDefault(x => x.No == request.Employee.No)
+            };
+
+            Console.WriteLine("Employees:");
+            foreach (var employee in InMemoryData.Employees)
+            {
+                Console.WriteLine(employee);
+            }
+
+            return await Task.FromResult(response);
         }
 
         public override async Task

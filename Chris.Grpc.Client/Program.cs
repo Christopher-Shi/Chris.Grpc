@@ -28,10 +28,11 @@ namespace Chris.Grpc.Client
                 case 3:
                     await AddPhotoAsync(client);
                     break;
+                case 4:
+                    await SaveAsync(client);
+                    break;
                 case 5:
                     await SaveAllAsync(client);
-                    break;
-                default:
                     break;
             }
 
@@ -73,15 +74,15 @@ namespace Chris.Grpc.Client
                 {"role", "administrator"}
             };
 
-            FileStream fs = File.OpenRead("logo.jpg");
+            var fs = File.OpenRead("logo.jpg");
             using var call = client.AddPhoto(metadata);
 
             var stream = call.RequestStream;
 
             while (true)
             {
-                byte[] buffer = new byte[1024];
-                int numberRead = await fs.ReadAsync(buffer, 0, buffer.Length);
+                var buffer = new byte[1024];
+                var numberRead = await fs.ReadAsync(buffer, 0, buffer.Length);
                 if (numberRead == 0)
                 {
                     break;
@@ -102,6 +103,30 @@ namespace Chris.Grpc.Client
             var response = await call.ResponseAsync;
 
             Console.WriteLine(response.IsOk);
+        }
+
+        public static async Task SaveAsync(EmployeeService.EmployeeServiceClient client)
+        {
+            var metadata = new Metadata
+            {
+                {"username", "dave"},
+                {"role", "administrator"}
+            };
+
+            var employee = new Employee
+            {
+                No = 1314011524,
+                FirstName = "Christopher",
+                LastName = "Shi",
+                Salary = 10000
+            };
+
+            var response = await client.SaveAsync(new EmployeeRequest
+            {
+                Employee = employee
+            }, metadata);
+
+            Console.WriteLine($"Response messages: { response }");
         }
 
         public static async Task SaveAllAsync(EmployeeService.EmployeeServiceClient client)

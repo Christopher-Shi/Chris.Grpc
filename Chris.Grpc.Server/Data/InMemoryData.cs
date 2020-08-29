@@ -5,7 +5,7 @@ namespace Chris.Grpc.Server.Data
 {
     public class InMemoryData
     {
-        public static List<Employee> Employees=new List<Employee>
+        public static List<Employee> Employees = new List<Employee>
         {
             new Employee
             {
