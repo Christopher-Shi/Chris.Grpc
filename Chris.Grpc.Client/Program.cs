@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using Chris.Grpc.Server.Protos;
 using Google.Protobuf;
+using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Grpc.Net.Client;
 using GrpcServer.Web.Protos;
@@ -118,7 +120,14 @@ namespace Chris.Grpc.Client
                 No = 1314011524,
                 FirstName = "Christopher",
                 LastName = "Shi",
-                Salary = 10000
+                //Salary = 10000
+                MonthSalary = new MonthSalary
+                {
+                    Basic = 4000f,
+                    Bonus = 345.5f
+                },
+                Status = EmloyeeStatus.Normal,
+                LastModify = Timestamp.FromDateTime(DateTime.UtcNow)
             };
 
             var response = await client.SaveAsync(new EmployeeRequest
@@ -138,14 +147,28 @@ namespace Chris.Grpc.Client
                     No = 111,
                     FirstName = "Monica",
                     LastName = "Geller",
-                    Salary = 7890.1f
+                    //Salary = 7890.1f
+                    MonthSalary = new MonthSalary
+                    {
+                        Basic = 600f,
+                        Bonus = 45.5f
+                    },
+                    Status = EmloyeeStatus.Resigned,
+                    LastModify = Timestamp.FromDateTime(DateTime.UtcNow)
                 },
                 new Employee
                 {
                     No = 222,
                     FirstName = "Joey",
                     LastName = "Tribbiani",
-                    Salary = 500
+                    //Salary = 500
+                    MonthSalary = new MonthSalary
+                    {
+                        Basic = 560f,
+                        Bonus = 155.5f
+                    },
+                    Status = EmloyeeStatus.Retired,
+                    LastModify = Timestamp.FromDateTime(DateTime.UtcNow)
                 }
             };
 

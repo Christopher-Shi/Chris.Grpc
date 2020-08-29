@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+option csharp_namespace = "Chris.Grpc.Server.Protos";
+
+enum EmloyeeStatus{
+	NORMAL = 0;
+	ONVACATION = 1;
+	RESIGNED = 2;
+	RETIRED = 3;
+}

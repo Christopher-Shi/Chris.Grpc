@@ -2,12 +2,27 @@ syntax = "proto3";
 
 option csharp_namespace = "GrpcServer.Web.Protos";
 
+import "Enum.proto";
+import "google/protobuf/timestamp.proto";
+
 message Employee{
 	int32 id = 1;
 	int32 no = 2;
 	string firstName = 3;
 	string lastName = 4;
-	float salary = 5;
+	//float salary = 5;
+
+	reserved 5;
+	reserved "salary";
+
+	MonthSalary monthSalary = 6;
+	EmloyeeStatus status = 7;
+	google.protobuf.Timestamp lastModify = 8;
+} 
+
+message MonthSalary{
+	float basic = 1;
+	float bonus = 2;
 }
 
 message GetByNoRequest{

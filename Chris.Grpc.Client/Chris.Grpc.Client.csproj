@@ -6,12 +6,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Protos\Messages.proto" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Google.Protobuf" Version="3.13.0" />
     <PackageReference Include="Grpc.Net.Client" Version="2.31.0" />
+    <PackageReference Include="Grpc.Net.ClientFactory" Version="2.23.2" />
     <PackageReference Include="Grpc.Tools" Version="2.31.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -19,7 +16,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="Protos\Messages.proto" GrpcServices="Client" />
+    <Folder Include="Protos\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="..\Chris.Grpc.Server\Protos\Enum.proto" GrpcServices="None">
+      <Link>Protos\Enum.proto</Link>
+    </Protobuf>
+    <Protobuf Include="..\Chris.Grpc.Server\Protos\Messages.proto" GrpcServices="Client">
+      <Link>Protos\Messages.proto</Link>
+    </Protobuf>
   </ItemGroup>
 
 </Project>
