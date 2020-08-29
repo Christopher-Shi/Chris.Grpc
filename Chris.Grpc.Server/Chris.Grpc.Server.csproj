@@ -14,6 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--TODO:项目需要注意的地方：ProtoRoot="Protos\" 设置 Protos文件夹为proto buffer文件的根目录，默认根目录是项目根目录-->
     <Protobuf Include="Protos\Enum.proto" GrpcServices="None" ProtoRoot="Protos\" />
     <Protobuf Include="Protos\Messages.proto" GrpcServices="Server" ProtoRoot="Protos\" />
   </ItemGroup>

@@ -2,6 +2,8 @@ syntax = "proto3";
 
 option csharp_namespace = "GrpcServer.Web.Protos";
 
+// TODO: Protos 文件夹为proto buffer 文件的根目录，所以路径不是"Protos/Enum.proto"
+// TODO：之所以要写成这样是因为，客户端在引入gRPC Connected Service 的时候，client 默认会将Protos文件夹作为proto buffer 文件的根目录，程序会报错
 import "Enum.proto";
 import "google/protobuf/timestamp.proto";
 
