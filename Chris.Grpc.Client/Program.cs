@@ -8,6 +8,8 @@ using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Grpc.Net.Client;
 using GrpcServer.Web.Protos;
+using Newtonsoft.Json;
+using Serilog;
 
 namespace Chris.Grpc.Client
 {
@@ -15,7 +17,18 @@ namespace Chris.Grpc.Client
     {
         static async Task Main(string[] args)
         {
-            using var channel = GrpcChannel.ForAddress("https://localhost:5001");
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Debug()
+                .WriteTo.Console()
+                .CreateLogger();
+
+            Log.Information("Client starting...");
+
+            using var channel = GrpcChannel.ForAddress("https://localhost:5001",
+                new GrpcChannelOptions
+                {
+                    LoggerFactory = new SerilogLoggerFactory()
+                });
             var client = new EmployeeService.EmployeeServiceClient(channel);
 
             var option = int.Parse(args[0]);
@@ -40,6 +53,8 @@ namespace Chris.Grpc.Client
 
             Console.WriteLine("Press any key to exist.");
             Console.ReadKey();
+
+            Log.CloseAndFlush();
         }
 
         public static async Task GetByNoAsync(EmployeeService.EmployeeServiceClient client)
@@ -50,21 +65,41 @@ namespace Chris.Grpc.Client
                 {"role", "administrator"}
             };
 
-            var response = await client.GetByNoAsync(new GetByNoRequest
+            try
             {
-                No = 1994
-            }, metadata);
+                var response = await client.GetByNoAsync(new GetByNoRequest
+                {
+                    No = 1994
+                }, metadata);
 
-            Console.WriteLine($"Response messages: {response}");
+                Console.WriteLine($"Response messages: {response}");
+            }
+            catch (RpcException e)
+            {
+                if (e.StatusCode == StatusCode.DataLoss)
+                {
+                    Log.Logger.Error($"{JsonConvert.SerializeObject(e.Trailers)}");
+                }
+
+                Log.Logger.Error(e.Message);
+            }
         }
 
         public static async Task GetAllAsync(EmployeeService.EmployeeServiceClient client)
         {
-            using var call = client.GetAll(new GetAllRequest());
-            var responseStream = call.ResponseStream;
-            while (await responseStream.MoveNext())
+            try
             {
-                Console.WriteLine(responseStream.Current.Employee);
+                using var call = client.GetAll(new GetAllRequest());
+                var responseStream = call.ResponseStream;
+                while (await responseStream.MoveNext())
+                {
+                    Console.WriteLine(responseStream.Current.Employee);
+                }
+            }
+            catch (RpcException e)
+            {
+                Log.Logger.Error($"{JsonConvert.SerializeObject(e.Trailers)}");
+                Log.Logger.Error(e.Message);
             }
         }
 
@@ -76,35 +111,43 @@ namespace Chris.Grpc.Client
                 {"role", "administrator"}
             };
 
-            var fs = File.OpenRead("logo.jpg");
-            using var call = client.AddPhoto(metadata);
-
-            var stream = call.RequestStream;
-
-            while (true)
+            try
             {
-                var buffer = new byte[1024];
-                var numberRead = await fs.ReadAsync(buffer, 0, buffer.Length);
-                if (numberRead == 0)
+                var fs = File.OpenRead("logo.jpg");
+                using var call = client.AddPhoto(metadata);
+
+                var stream = call.RequestStream;
+
+                while (true)
                 {
-                    break;
-                }
-                if (numberRead < buffer.Length)
-                {
-                    Array.Resize(ref buffer, numberRead);
+                    var buffer = new byte[1024];
+                    var numberRead = await fs.ReadAsync(buffer, 0, buffer.Length);
+                    if (numberRead == 0)
+                    {
+                        break;
+                    }
+                    if (numberRead < buffer.Length)
+                    {
+                        Array.Resize(ref buffer, numberRead);
+                    }
+
+                    await stream.WriteAsync(new AddPhotoRequest
+                    {
+                        Data = ByteString.CopyFrom(buffer)
+                    });
                 }
 
-                await stream.WriteAsync(new AddPhotoRequest
-                {
-                    Data = ByteString.CopyFrom(buffer)
-                });
+                await stream.CompleteAsync();
+
+                var response = await call.ResponseAsync;
+
+                Console.WriteLine(response.IsOk);
             }
-
-            await stream.CompleteAsync();
-
-            var response = await call.ResponseAsync;
-
-            Console.WriteLine(response.IsOk);
+            catch (RpcException e)
+            {
+                Log.Logger.Error($"{JsonConvert.SerializeObject(e.Trailers)}");
+                Log.Logger.Error(e.Message);
+            }
         }
 
         public static async Task SaveAsync(EmployeeService.EmployeeServiceClient client)
@@ -130,12 +173,20 @@ namespace Chris.Grpc.Client
                 LastModify = Timestamp.FromDateTime(DateTime.UtcNow)
             };
 
-            var response = await client.SaveAsync(new EmployeeRequest
+            try
             {
-                Employee = employee
-            }, metadata);
+                var response = await client.SaveAsync(new EmployeeRequest
+                {
+                    Employee = employee
+                }, metadata);
 
-            Console.WriteLine($"Response messages: { response }");
+                Console.WriteLine($"Response messages: { response }");
+            }
+            catch (RpcException e)
+            {
+                Log.Logger.Error($"{JsonConvert.SerializeObject(e.Trailers)}");
+                Log.Logger.Error(e.Message);
+            }
         }
 
         public static async Task SaveAllAsync(EmployeeService.EmployeeServiceClient client)
@@ -172,28 +223,36 @@ namespace Chris.Grpc.Client
                 }
             };
 
-            using var call = client.SaveAll();
-            var requestStream = call.RequestStream;
-            var responseStream = call.ResponseStream;
-
-            var responseTask = Task.Run(async () =>
+            try
             {
-                while (await responseStream.MoveNext())
-                {
-                    Console.WriteLine($"Saved: {responseStream.Current.Employee}");
-                }
-            });
+                using var call = client.SaveAll();
+                var requestStream = call.RequestStream;
+                var responseStream = call.ResponseStream;
 
-            foreach (var employee in employees)
-            {
-                await requestStream.WriteAsync(new EmployeeRequest
+                var responseTask = Task.Run(async () =>
                 {
-                    Employee = employee
+                    while (await responseStream.MoveNext())
+                    {
+                        Console.WriteLine($"Saved: {responseStream.Current.Employee}");
+                    }
                 });
-            }
 
-            await requestStream.CompleteAsync();
-            await responseTask;
+                foreach (var employee in employees)
+                {
+                    await requestStream.WriteAsync(new EmployeeRequest
+                    {
+                        Employee = employee
+                    });
+                }
+
+                await requestStream.CompleteAsync();
+                await responseTask;
+            }
+            catch (RpcException e)
+            {
+                Log.Logger.Error($"{JsonConvert.SerializeObject(e.Trailers)}");
+                Log.Logger.Error(e.Message);
+            }
         }
     }
 }

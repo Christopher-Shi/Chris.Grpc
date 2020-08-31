@@ -19,4 +19,10 @@
     <Protobuf Include="Protos\Messages.proto" GrpcServices="Server" ProtoRoot="Protos\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Update="appsettings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

@@ -20,35 +20,71 @@ namespace Chris.Grpc.Server.Services
 
         public override async Task<EmployeeResponse> GetByNo(GetByNoRequest request, ServerCallContext context)
         {
-            var metadata = context.RequestHeaders;
-            foreach (var pair in metadata)
+            try
             {
-                _logger.LogInformation($"{pair.Key}: {pair.Value}");
-            }
-
-            var employee = InMemoryData.Employees.SingleOrDefault(x => x.No == request.No);
-            if (employee != null)
-            {
-                var response = new EmployeeResponse
+                // TODO: 示例代码 模拟抛出异常
+                if (true)
                 {
-                    Employee = employee
-                };
+                    var trailers = new Metadata
+                    {
+                        {"field", "No"},
+                        {"Message", "something went wrong..."}
+                    };
+                    //throw new RpcException(Status.DefaultCancelled, trailers);
+                    throw new RpcException(new Status(StatusCode.DataLoss,"Data is lost..."), trailers);
+                }
 
-                return await Task.FromResult(response);
+                var metadata = context.RequestHeaders;
+                foreach (var pair in metadata)
+                {
+                    _logger.LogInformation($"{pair.Key}: {pair.Value}");
+                }
+
+                var employee = InMemoryData.Employees.SingleOrDefault(x => x.No == request.No);
+                if (employee != null)
+                {
+                    var response = new EmployeeResponse
+                    {
+                        Employee = employee
+                    };
+
+                    return await Task.FromResult(response);
+                }
+
+                throw new Exception($"Employee not found with no: {request.No}");
             }
-
-            throw new Exception($"Employee not found with no: {request.No}");
+            catch (RpcException re)
+            {
+                throw;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e.Message);
+                throw new RpcException(Status.DefaultCancelled, e.Message);
+            }
         }
 
         public override async Task
             GetAll(GetAllRequest request, IServerStreamWriter<EmployeeResponse> responseStream, ServerCallContext context)
         {
-            foreach (var employee in InMemoryData.Employees)
+            try
             {
-                await responseStream.WriteAsync(new EmployeeResponse
+                foreach (var employee in InMemoryData.Employees)
                 {
-                    Employee = employee
-                });
+                    await responseStream.WriteAsync(new EmployeeResponse
+                    {
+                        Employee = employee
+                    });
+                }
+            }
+            catch (RpcException re)
+            {
+                throw;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e.Message);
+                throw new RpcException(Status.DefaultCancelled, e.Message);
             }
         }
 
@@ -79,26 +115,38 @@ namespace Chris.Grpc.Server.Services
 
         public override async Task<EmployeeResponse> Save(EmployeeRequest request, ServerCallContext context)
         {
-            var metadata = context.RequestHeaders;
-            foreach (var pair in metadata)
+            try
             {
-                _logger.LogInformation($"{pair.Key}: {pair.Value}");
+                var metadata = context.RequestHeaders;
+                foreach (var pair in metadata)
+                {
+                    _logger.LogInformation($"{pair.Key}: {pair.Value}");
+                }
+
+                InMemoryData.Employees.Add(request.Employee);
+
+                var response = new EmployeeResponse
+                {
+                    Employee = InMemoryData.Employees.SingleOrDefault(x => x.No == request.Employee.No)
+                };
+
+                Console.WriteLine("Employees:");
+                foreach (var employee in InMemoryData.Employees)
+                {
+                    Console.WriteLine(employee);
+                }
+
+                return await Task.FromResult(response);
             }
-
-            InMemoryData.Employees.Add(request.Employee);
-
-            var response = new EmployeeResponse
+            catch (RpcException re)
             {
-                Employee = InMemoryData.Employees.SingleOrDefault(x => x.No == request.Employee.No)
-            };
-
-            Console.WriteLine("Employees:");
-            foreach (var employee in InMemoryData.Employees)
-            {
-                Console.WriteLine(employee);
+                throw;
             }
-
-            return await Task.FromResult(response);
+            catch (Exception e)
+            {
+                _logger.LogError(e.Message);
+                throw new RpcException(Status.DefaultCancelled, e.Message);
+            }
         }
 
         public override async Task
@@ -106,24 +154,36 @@ namespace Chris.Grpc.Server.Services
                 IServerStreamWriter<EmployeeResponse> responseStream,
                 ServerCallContext context)
         {
-            while (await requestStream.MoveNext())
+            try
             {
-                var employee = requestStream.Current.Employee;
-                lock (this)
+                while (await requestStream.MoveNext())
                 {
-                    InMemoryData.Employees.Add(employee);
+                    var employee = requestStream.Current.Employee;
+                    lock (this)
+                    {
+                        InMemoryData.Employees.Add(employee);
+                    }
+
+                    await responseStream.WriteAsync(new EmployeeResponse
+                    {
+                        Employee = employee
+                    });
                 }
 
-                await responseStream.WriteAsync(new EmployeeResponse
+                Console.WriteLine("Employees:");
+                foreach (var employee in InMemoryData.Employees)
                 {
-                    Employee = employee
-                });
+                    Console.WriteLine(employee);
+                }
             }
-
-            Console.WriteLine("Employees:");
-            foreach (var employee in InMemoryData.Employees)
+            catch (RpcException re)
             {
-                Console.WriteLine(employee);
+                throw;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e.Message);
+                throw new RpcException(Status.DefaultCancelled, e.Message);
             }
         }
     }
