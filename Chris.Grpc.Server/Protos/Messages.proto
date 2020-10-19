@@ -50,10 +50,22 @@ message EmployeeRequest{
 	Employee employee = 1;
 }
 
+message  TokenRequest{
+	string username = 1;
+	string password = 2;
+}
+
+message  TokenResponse{
+	string token = 1;
+	google.protobuf.Timestamp expiration = 2;
+	bool success = 3;
+}
+
 service EmployeeService{
 	rpc GetByNo(GetByNoRequest) returns (EmployeeResponse);
 	rpc GetAll(GetAllRequest) returns (stream EmployeeResponse);
 	rpc AddPhoto(stream AddPhotoRequest) returns (AddPhotoResponse); 
 	rpc Save(EmployeeRequest) returns (EmployeeResponse);
 	rpc SaveAll(stream EmployeeRequest) returns (stream EmployeeResponse);
+	rpc CreateToken(TokenRequest) returns (TokenResponse);
 }

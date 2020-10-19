@@ -3,19 +3,59 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Chris.Grpc.Server.Data;
+using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using GrpcServer.Web.Protos;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
 
 namespace Chris.Grpc.Server.Services
 {
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class MyEmployeeService : EmployeeService.EmployeeServiceBase
     {
         private readonly ILogger<MyEmployeeService> _logger;
+        private readonly JwtTokenValidationService jwtTokenValidationService;
 
-        public MyEmployeeService(ILogger<MyEmployeeService> logger)
+        public MyEmployeeService(ILogger<MyEmployeeService> logger,
+            JwtTokenValidationService jwtTokenValidationService)
         {
             _logger = logger;
+            this.jwtTokenValidationService = jwtTokenValidationService;
+        }
+
+        /// <summary>
+        /// 允许匿名调用
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        [AllowAnonymous]
+        public override async Task<TokenResponse> CreateToken(TokenRequest request, ServerCallContext context)
+        {
+            var userModel = new UserModel
+            {
+                UserName = request.Username,
+                Password = request.Password
+            };
+
+            var response = await jwtTokenValidationService.GenerateTokenAsync(userModel);
+
+            if (response.Success)
+            {
+                return new TokenResponse
+                {
+                    Token = response.Token,
+                    Expiration = Timestamp.FromDateTime(response.Expiration),
+                    Success = true
+                };
+            }
+
+            return new TokenResponse
+            {
+                Success = false
+            };
         }
 
         public override async Task<EmployeeResponse> GetByNo(GetByNoRequest request, ServerCallContext context)
@@ -23,16 +63,16 @@ namespace Chris.Grpc.Server.Services
             try
             {
                 // TODO: 示例代码 模拟抛出异常
-                if (true)
-                {
-                    var trailers = new Metadata
-                    {
-                        {"field", "No"},
-                        {"Message", "something went wrong..."}
-                    };
-                    //throw new RpcException(Status.DefaultCancelled, trailers);
-                    throw new RpcException(new Status(StatusCode.DataLoss,"Data is lost..."), trailers);
-                }
+                //if (true)
+                //{
+                //    var trailers = new Metadata
+                //    {
+                //        {"field", "No"},
+                //        {"Message", "something went wrong..."}
+                //    };
+                //    //throw new RpcException(Status.DefaultCancelled, trailers);
+                //    throw new RpcException(new Status(StatusCode.DataLoss, "Data is lost..."), trailers);
+                //}
 
                 var metadata = context.RequestHeaders;
                 foreach (var pair in metadata)
