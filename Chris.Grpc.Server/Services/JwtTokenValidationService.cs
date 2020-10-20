@@ -31,7 +31,7 @@ namespace Chris.Grpc.Server.Services
         {
             if (model.UserName == "admin" && model.Password == "1234")
             {
-                var claims = new[]
+                var claims = new Claim[]
                 {
                     new Claim(JwtRegisteredClaimNames.Sub, "email@126.com"),
                     new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
@@ -39,14 +39,14 @@ namespace Chris.Grpc.Server.Services
                 };
 
                 var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("1-246542-123243-1422423-764784-0642-47692-401234"));
-                var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+                var credential = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
                 var token = new JwtSecurityToken(
                     "localhost",
                     "localhost",
                     claims,
                     expires: DateTime.Now.AddMinutes(10),
-                    signingCredentials: creds
+                    signingCredentials: credential
                     );
 
                 return new TokenModel
